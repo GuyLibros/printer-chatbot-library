@@ -3,98 +3,83 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Library Printer Troubleshooter</title>
-    <!-- Tailwind CSS CDN for styling -->
+    <title>Library Printer Troubleshooter - Debug</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        /* Custom scrollbar for chat messages to improve aesthetics */
-        .chat-messages::-webkit-scrollbar {
-            width: 8px;
-        }
-        .chat-messages::-webkit-scrollbar-track {
-            background: #f1f1f1;
-            border-radius: 10px;
-        }
-        .chat-messages::-webkit-scrollbar-thumb {
-            background: #888;
-            border-radius: 10px;
-        }
-        .chat-messages::-webkit-scrollbar-thumb:hover {
-            background: #555;
-        }
-    </style>
 </head>
 <body class="bg-gray-100 min-h-screen flex items-center justify-center font-sans">
     <div class="flex flex-col bg-white shadow-lg rounded-xl w-full max-w-2xl h-[80vh] overflow-hidden">
-        <!-- Chat Header Section -->
+        <!-- Chat Header -->
         <div class="bg-blue-600 text-white p-4 rounded-t-xl flex items-center justify-between shadow-md">
-            <h1 class="text-2xl font-bold">Library Printer Chatbot</h1>
-            <button id="clearChatBtn" class="bg-blue-700 hover:bg-blue-800 text-white px-4 py-2 rounded-lg shadow-sm transition duration-300 ease-in-out transform hover:scale-105">
+            <h1 class="text-2xl font-bold">Library Printer Chatbot (Debug)</h1>
+            <button id="clearChatBtn" class="bg-blue-700 hover:bg-blue-800 text-white px-4 py-2 rounded-lg">
                 Clear Chat
             </button>
         </div>
 
-        <!-- Chat Messages Display Area -->
-        <div id="chatMessages" class="flex-1 p-6 overflow-y-auto chat-messages space-y-4">
-            <!-- Initial bot message to guide the user -->
+        <!-- Chat Messages -->
+        <div id="chatMessages" class="flex-1 p-6 overflow-y-auto space-y-4">
             <div class="flex justify-start">
-                <div class="bg-gray-200 text-gray-800 p-3 rounded-lg max-w-xs shadow-sm">
-                    Hello! I'm your library printer troubleshooting assistant. How can I help you today?
+                <div class="bg-gray-200 text-gray-800 p-3 rounded-lg max-w-lg shadow-sm">
+                    Hello! I'm your library printer troubleshooting assistant. 
                     <br><br>
-                    You can ask me things like:
-                    <ul>
-                        <li>"Printer isn't printing"</li>
-                        <li>"Paper jam"</li>
-                        <li>"Low toner"</li>
-                        <li>"How to connect to Wi-Fi"</li>
-                        <li>"Start over"</li>
-                    </ul>
+                    Try typing: "hello", "paper jam", or "printer not working"
                 </div>
             </div>
         </div>
 
-        <!-- Chat Input Section -->
+        <!-- Chat Input -->
         <div class="p-4 border-t border-gray-200 flex items-center space-x-3 bg-gray-50 rounded-b-xl">
-            <input type="text" id="userInput" placeholder="Type your message here..."
-                   class="flex-1 p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-200 ease-in-out">
-            <button id="sendBtn"
-                    class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105">
+            <input 
+                type="text" 
+                id="userInput" 
+                placeholder="Type your message here..."
+                class="flex-1 p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+            <button 
+                id="sendBtn"
+                class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg"
+            >
                 Send
             </button>
         </div>
     </div>
 
     <script>
-        // Get references to the HTML elements
+        console.log("Script starting...");
+        
+        // Test if elements exist
         const chatMessages = document.getElementById('chatMessages');
         const userInput = document.getElementById('userInput');
         const sendBtn = document.getElementById('sendBtn');
         const clearChatBtn = document.getElementById('clearChatBtn');
 
-        // Conversation context and user tracking
+        console.log("Elements found:", {
+            chatMessages: !!chatMessages,
+            userInput: !!userInput,
+            sendBtn: !!sendBtn,
+            clearChatBtn: !!clearChatBtn
+        });
+
+        if (!chatMessages || !userInput || !sendBtn || !clearChatBtn) {
+            alert("ERROR: Could not find required HTML elements!");
+            console.error("Missing elements!");
+        }
+
+        // Simple conversation state
         let conversationState = {
             currentIssue: null,
-            step: 0,
-            userResponses: []
+            step: 0
         };
 
-        /**
-         * Adds a message to the chat display.
-         * @param {string} sender - 'user' or 'bot'
-         * @param {string} message - The message content (can contain HTML for formatting, including <img> tags)
-         */
         function addMessage(sender, message) {
+            console.log(`Adding message from ${sender}: ${message.substring(0, 50)}...`);
+            
             const messageDiv = document.createElement('div');
-            messageDiv.classList.add('flex', sender === 'user' ? 'justify-end' : 'justify-start');
+            messageDiv.className = 'flex ' + (sender === 'user' ? 'justify-end' : 'justify-start');
 
             const messageBubble = document.createElement('div');
-            messageBubble.classList.add(
-                'p-3',
-                'rounded-lg',
-                'max-w-lg',
-                'shadow-sm',
-                sender === 'user' ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-800'
-            );
+            messageBubble.className = 'p-3 rounded-lg max-w-lg shadow-sm ' + 
+                (sender === 'user' ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-800');
             messageBubble.innerHTML = message;
 
             messageDiv.appendChild(messageBubble);
@@ -102,475 +87,124 @@
             chatMessages.scrollTop = chatMessages.scrollHeight;
         }
 
-        /**
-         * Enhanced rule-based response system with multi-step troubleshooting
-         */
-        function getRuleBasedResponse(message) {
-            const lowerCaseMessage = message.toLowerCase();
+        function getResponse(message) {
+            console.log("Getting response for:", message);
+            
+            const msg = message.toLowerCase();
 
-            // Greeting responses
-            if (lowerCaseMessage.includes("hello") || lowerCaseMessage.includes("hi") || lowerCaseMessage.includes("hey")) {
-                return "Hello there! I'm here to help you troubleshoot printer issues. What problem are you experiencing?";
-            }
-
-            // Reset conversation
-            if (lowerCaseMessage.includes("start over") || lowerCaseMessage.includes("reset") || lowerCaseMessage.includes("new issue")) {
-                conversationState = { currentIssue: null, step: 0, userResponses: [] };
-                return "Okay, let's start fresh! What's the main issue you're experiencing with the printer?";
-            }
-
-            // Main printer issues with step-by-step troubleshooting
-            if (lowerCaseMessage.includes("not printing") || lowerCaseMessage.includes("isn't printing") || lowerCaseMessage.includes("won't print")) {
-                if (conversationState.currentIssue !== 'not_printing') {
-                    conversationState.currentIssue = 'not_printing';
-                    conversationState.step = 1;
-                    return `I'll help you troubleshoot why the printer isn't printing. Let's go through this step by step.
-                    
-                    <div class="mt-3 p-3 bg-blue-50 rounded-lg">
-                        <strong>Step 1:</strong> Is the printer turned on? Look for a power light or display screen.
-                    </div>
-                    
-                    Please respond with "yes" or "no".`;
-                }
-                return handleMultiStepTroubleshooting(lowerCaseMessage);
-            }
-
-            if (lowerCaseMessage.includes("paper jam")) {
-                return `
-                    <div class="space-y-3">
-                        <p><strong>Paper Jam Solution:</strong></p>
-                        <ol class="list-decimal list-inside space-y-2">
-                            <li><strong>Turn off the printer</strong> and unplug it for safety</li>
-                            <li><strong>Open all accessible panels</strong> (front, back, top covers)</li>
-                            <li><strong>Gently remove jammed paper</strong>:
-                                <ul class="list-disc list-inside ml-4 mt-1">
-                                    <li>Pull paper in the direction it normally feeds</li>
-                                    <li>Remove small pieces carefully</li>
-                                    <li>Don't force or tear the paper</li>
-                                </ul>
-                            </li>
-                            <li><strong>Check these areas</strong>:
-                                <ul class="list-disc list-inside ml-4 mt-1">
-                                    <li>Paper input tray</li>
-                                    <li>Paper output tray</li>
-                                    <li>Inside the printer (around the drum/toner area)</li>
-                                </ul>
-                            </li>
-                            <li><strong>Close all panels</strong> securely</li>
-                            <li><strong>Plug in and turn on</strong> the printer</li>
-                        </ol>
-                        
-                        <div class="mt-4 p-3 bg-yellow-50 border-l-4 border-yellow-400">
-                            <p class="text-sm"><strong>⚠️ Important:</strong> If you can't easily remove the paper or if it keeps jamming, please ask a library staff member for help.</p>
-                        </div>
-                    </div>
-                `;
-            }
-
-            if (lowerCaseMessage.includes("low toner") || lowerCaseMessage.includes("ink low") || lowerCaseMessage.includes("replace cartridge") || lowerCaseMessage.includes("faded") || lowerCaseMessage.includes("light print")) {
-                return `
-                    <div class="space-y-3">
-                        <p><strong>Low Toner/Ink Issue:</strong></p>
-                        
-                        <div class="bg-blue-50 p-3 rounded-lg">
-                            <h4 class="font-semibold mb-2">Check the Printer Display:</h4>
-                            <ul class="list-disc list-inside space-y-1">
-                                <li>Look for messages like "Toner Low" or "Replace Cartridge"</li>
-                                <li>Check for blinking lights near the toner compartment</li>
-                                <li>Note any specific cartridge colors mentioned (Black, Cyan, Magenta, Yellow)</li>
-                            </ul>
-                        </div>
-                        
-                        <div class="bg-orange-50 p-3 rounded-lg border-l-4 border-orange-400">
-                            <h4 class="font-semibold mb-2">🚨 Staff Assistance Required</h4>
-                            <p>Please inform a library staff member about the toner/ink issue. Include:</p>
-                            <ul class="list-disc list-inside mt-2 space-y-1">
-                                <li>Which printer you're using (location/name)</li>
-                                <li>What the display says exactly</li>
-                                <li>Which color(s) need replacement (if specified)</li>
-                            </ul>
-                        </div>
-                        
-                        <div class="bg-gray-50 p-3 rounded-lg">
-                            <p class="text-sm"><strong>Why staff help is needed:</strong> Toner cartridges are expensive and require proper handling. Library staff are trained to replace them safely and ensure compatibility.</p>
-                        </div>
-                    </div>
-                `;
-            }
-
-            if (lowerCaseMessage.includes("connect") && (lowerCaseMessage.includes("wifi") || lowerCaseMessage.includes("wi-fi") || lowerCaseMessage.includes("network"))) {
-                return `
-                    <div class="space-y-3">
-                        <p><strong>Connecting to Library Printer via Wi-Fi:</strong></p>
-                        
-                        <div class="bg-green-50 p-3 rounded-lg">
-                            <h4 class="font-semibold mb-2">Step 1: Connect to Library Wi-Fi</h4>
-                            <ul class="list-disc list-inside space-y-1">
-                                <li>Network name: Usually "Library_Guest" or "Library_Public"</li>
-                                <li>Ask staff for the Wi-Fi password if needed</li>
-                                <li>Make sure you have a strong connection</li>
-                            </ul>
-                        </div>
-                        
-                        <div class="bg-blue-50 p-3 rounded-lg">
-                            <h4 class="font-semibold mb-2">Step 2: Find the Printer</h4>
-                            <ol class="list-decimal list-inside space-y-1">
-                                <li>Open your document and select "Print" (Ctrl+P or Cmd+P)</li>
-                                <li>Look for printers named like:
-                                    <ul class="list-disc list-inside ml-4 mt-1">
-                                        <li>"Library_Printer_Main"</li>
-                                        <li>"HP_Library" or "Canon_Library"</li>
-                                        <li>"Public_Printer_[Location]"</li>
-                                    </ul>
-                                </li>
-                                <li>Select the appropriate printer</li>
-                            </ol>
-                        </div>
-                        
-                        <div class="bg-yellow-50 p-3 rounded-lg">
-                            <h4 class="font-semibold mb-2">Step 3: Authentication</h4>
-                            <p>You may need to provide:</p>
-                            <ul class="list-disc list-inside space-y-1">
-                                <li>Library card number</li>
-                                <li>Guest pass code</li>
-                                <li>Student ID</li>
-                            </ul>
-                        </div>
-                        
-                        <p class="text-sm text-gray-600 mt-3">💡 <strong>Tip:</strong> If you can't see the library printer, try refreshing the printer list or ask staff to help you add the printer manually.</p>
-                    </div>
-                `;
-            }
-
-            if (lowerCaseMessage.includes("no power") || lowerCaseMessage.includes("won't turn on") || lowerCaseMessage.includes("dead")) {
-                return `
-                    <div class="space-y-3">
-                        <p><strong>Printer Power Issues:</strong></p>
-                        
-                        <ol class="list-decimal list-inside space-y-3">
-                            <li><strong>Check Power Connections:</strong>
-                                <ul class="list-disc list-inside ml-4 mt-1 space-y-1">
-                                    <li>Ensure power cord is firmly plugged into the printer</li>
-                                    <li>Check that the other end is securely in the wall outlet</li>
-                                    <li>Look for any loose connections</li>
-                                </ul>
-                            </li>
-                            
-                            <li><strong>Test the Outlet:</strong>
-                                <ul class="list-disc list-inside ml-4 mt-1 space-y-1">
-                                    <li>Try plugging another device into the same outlet</li>
-                                    <li>Check if other nearby equipment is working</li>
-                                </ul>
-                            </li>
-                            
-                            <li><strong>Find the Power Button:</strong>
-                                <ul class="list-disc list-inside ml-4 mt-1 space-y-1">
-                                    <li>Usually located on the front panel</li>
-                                    <li>Sometimes on the side or back</li>
-                                    <li>May be a button or switch</li>
-                                    <li>Press and hold for 2-3 seconds</li>
-                                </ul>
-                            </li>
-                        </ol>
-                        
-                        <div class="mt-4 p-3 bg-red-50 border-l-4 border-red-400">
-                            <p><strong>🚨 If still no power:</strong> This could indicate a hardware problem. Please notify library staff immediately - they may need to check the circuit breaker or call for repairs.</p>
-                        </div>
-                    </div>
-                `;
-            }
-
-            if (lowerCaseMessage.includes("print quality") || lowerCaseMessage.includes("blurry") || lowerCaseMessage.includes("streaks") || lowerCaseMessage.includes("smudged")) {
-                return `
-                    <div class="space-y-3">
-                        <p><strong>Print Quality Issues - Troubleshooting Guide:</strong></p>
-                        
-                        <div class="bg-blue-50 p-3 rounded-lg">
-                            <h4 class="font-semibold mb-2">Common Causes & Solutions:</h4>
-                            
-                            <div class="space-y-2">
-                                <div><strong>Streaks or Lines:</strong>
-                                    <ul class="list-disc list-inside ml-4 text-sm">
-                                        <li>Usually indicates dirty drum or low toner</li>
-                                        <li>Try printing a test page</li>
-                                    </ul>
-                                </div>
-                                
-                                <div><strong>Faded Print:</strong>
-                                    <ul class="list-disc list-inside ml-4 text-sm">
-                                        <li>Low toner/ink levels</li>
-                                        <li>Check printer's toner status</li>
-                                    </ul>
-                                </div>
-                                
-                                <div><strong>Smudged Text:</strong>
-                                    <ul class="list-disc list-inside ml-4 text-sm">
-                                        <li>Paper might be damp or wrong type</li>
-                                        <li>Fuser unit may need cleaning</li>
-                                    </ul>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="bg-green-50 p-3 rounded-lg">
-                            <h4 class="font-semibold mb-2">Quick Fixes to Try:</h4>
-                            <ol class="list-decimal list-inside space-y-1">
-                                <li>Print a test page (usually in printer menu)</li>
-                                <li>Check if you're using the correct paper type</li>
-                                <li>Make sure paper isn't damp or damaged</li>
-                                <li>Try cleaning cycle if available in printer menu</li>
-                            </ol>
-                        </div>
-                        
-                        <div class="bg-orange-50 p-3 rounded-lg">
-                            <p><strong>💡 Staff Help Recommended:</strong> If print quality doesn't improve after trying these steps, please inform library staff. They can perform deeper maintenance like cleaning internal components or replacing consumables.</p>
-                        </div>
-                    </div>
-                `;
-            }
-
-            if (lowerCaseMessage.includes("stuck") && lowerCaseMessage.includes("queue")) {
-                return `
-                    <div class="space-y-3">
-                        <p><strong>Print Queue Issues:</strong></p>
-                        
-                        <div class="bg-blue-50 p-3 rounded-lg">
-                            <h4 class="font-semibold mb-2">For Windows:</h4>
-                            <ol class="list-decimal list-inside space-y-1">
-                                <li>Go to Settings → Devices → Printers & Scanners</li>
-                                <li>Click on the library printer</li>
-                                <li>Click "Open Queue"</li>
-                                <li>Right-click stuck documents and select "Cancel"</li>
-                                <li>If needed, select "Printer" → "Cancel All Documents"</li>
-                            </ol>
-                        </div>
-                        
-                        <div class="bg-green-50 p-3 rounded-lg">
-                            <h4 class="font-semibold mb-2">For Mac:</h4>
-                            <ol class="list-decimal list-inside space-y-1">
-                                <li>Go to System Preferences → Printers & Scanners</li>
-                                <li>Select the library printer</li>
-                                <li>Click "Open Print Queue"</li>
-                                <li>Select stuck jobs and click the "X" to cancel</li>
-                            </ol>
-                        </div>
-                        
-                        <div class="bg-yellow-50 p-3 rounded-lg">
-                            <h4 class="font-semibold mb-2">Alternative Solutions:</h4>
-                            <ul class="list-disc list-inside space-y-1">
-                                <li>Restart your computer</li>
-                                <li>Ask staff to restart the printer</li>
-                                <li>Try printing from a different application</li>
-                                <li>Remove and re-add the printer</li>
-                            </ul>
-                        </div>
-                    </div>
-                `;
-            }
-
-            // Help and capabilities
-            if (lowerCaseMessage.includes("help") || lowerCaseMessage.includes("what can you do") || lowerCaseMessage.includes("commands")) {
-                return `
-                    <div class="space-y-3">
-                        <p><strong>I can help you with these printer issues:</strong></p>
-                        
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
-                            <div class="bg-blue-50 p-3 rounded-lg">
-                                <h4 class="font-semibold text-blue-800">Hardware Issues:</h4>
-                                <ul class="text-sm space-y-1 mt-1">
-                                    <li>• Printer won't turn on</li>
-                                    <li>• Paper jams</li>
-                                    <li>• No power issues</li>
-                                </ul>
-                            </div>
-                            
-                            <div class="bg-green-50 p-3 rounded-lg">
-                                <h4 class="font-semibold text-green-800">Print Quality:</h4>
-                                <ul class="text-sm space-y-1 mt-1">
-                                    <li>• Faded or light prints</li>
-                                    <li>• Streaks or smudges</li>
-                                    <li>• Low toner/ink warnings</li>
-                                </ul>
-                            </div>
-                            
-                            <div class="bg-purple-50 p-3 rounded-lg">
-                                <h4 class="font-semibold text-purple-800">Connection Issues:</h4>
-                                <ul class="text-sm space-y-1 mt-1">
-                                    <li>• Wi-Fi connection setup</li>
-                                    <li>• Finding network printers</li>
-                                    <li>• Print queue problems</li>
-                                </ul>
-                            </div>
-                            
-                            <div class="bg-orange-50 p-3 rounded-lg">
-                                <h4 class="font-semibold text-orange-800">General Support:</h4>
-                                <ul class="text-sm space-y-1 mt-1">
-                                    <li>• Step-by-step guidance</li>
-                                    <li>• When to contact staff</li>
-                                    <li>• Prevention tips</li>
-                                </ul>
-                            </div>
-                        </div>
-                        
-                        <p class="text-sm text-gray-600 mt-3">💬 Just describe your problem in plain English - I'll guide you through the solution!</p>
-                    </div>
-                `;
-            }
-
-            // Gratitude responses
-            if (lowerCaseMessage.includes("thank") || lowerCaseMessage.includes("thanks")) {
-                return "You're welcome! I'm glad I could help. Is there anything else you need assistance with regarding the printer?";
-            }
-
-            // Handle yes/no responses for multi-step troubleshooting
-            if (conversationState.currentIssue && (lowerCaseMessage.includes("yes") || lowerCaseMessage.includes("no"))) {
-                return handleMultiStepTroubleshooting(lowerCaseMessage);
-            }
-
-            // Default responses for unrecognized input
-            const defaultResponses = [
-                "I'm not sure I understand that specific issue. Could you describe what's happening with the printer in more detail?",
-                "Can you tell me more about the problem you're experiencing? For example, is it a power issue, paper jam, print quality, or connection problem?",
-                "I'd like to help! Try describing your issue using keywords like 'not printing', 'paper jam', 'low toner', or 'can't connect'.",
-                "Let me help you troubleshoot! What exactly is the printer doing (or not doing) that's causing problems?"
-            ];
-
-            return defaultResponses[Math.floor(Math.random() * defaultResponses.length)];
-        }
-
-        /**
-         * Handles multi-step troubleshooting conversations
-         */
-        function handleMultiStepTroubleshooting(message) {
-            if (conversationState.currentIssue === 'not_printing') {
-                const msg = message.toLowerCase();
-                
-                switch (conversationState.step) {
-                    case 1:
-                        if (msg.includes('yes')) {
-                            conversationState.step = 2;
-                            return `Great! The printer is on. 
-                            
-                            <div class="mt-3 p-3 bg-blue-50 rounded-lg">
-                                <strong>Step 2:</strong> Is there paper in the paper tray? Check that:
-                                <ul class="list-disc list-inside mt-2">
-                                    <li>The tray isn't empty</li>
-                                    <li>Paper is loaded correctly (not skewed)</li>
-                                    <li>Paper guides are adjusted to the paper size</li>
-                                </ul>
-                            </div>`;
-                        } else if (msg.includes('no')) {
-                            conversationState = { currentIssue: null, step: 0, userResponses: [] };
-                            return `The printer needs to be turned on first. 
-                            
-                            <div class="mt-3 p-3 bg-red-50 rounded-lg border-l-4 border-red-400">
-                                <strong>Please try:</strong>
-                                <ol class="list-decimal list-inside mt-2">
-                                    <li>Look for the power button (usually on the front panel)</li>
-                                    <li>Press and hold for 2-3 seconds</li>
-                                    <li>Wait for the printer to fully start up (may take 1-2 minutes)</li>
-                                    <li>Look for a ready light or "Ready" message on display</li>
-                                </ol>
-                            </div>
-                            
-                            If it still won't turn on, there might be a power issue. Type "no power" for more help with that.`;
-                        }
-                        break;
-                        
-                    case 2:
-                        if (msg.includes('yes')) {
-                            conversationState.step = 3;
-                            return `Good! Paper is loaded.
-                            
-                            <div class="mt-3 p-3 bg-blue-50 rounded-lg">
-                                <strong>Step 3:</strong> Are there any error messages or warning lights on the printer display?
-                                <ul class="list-disc list-inside mt-2">
-                                    <li>Check the LCD screen for messages</li>
-                                    <li>Look for blinking or red lights</li>
-                                    <li>Note any specific error codes</li>
-                                </ul>
-                            </div>`;
-                        } else if (msg.includes('no')) {
-                            conversationState = { currentIssue: null, step: 0, userResponses: [] };
-                            return `Please add paper to the tray:
-                            
-                            <div class="mt-3 p-3 bg-yellow-50 rounded-lg">
-                                <strong>How to load paper:</strong>
-                                <ol class="list-decimal list-inside mt-2">
-                                    <li>Pull out the paper tray completely</li>
-                                    <li>Adjust the paper guides to the right size</li>
-                                    <li>Load paper with the print side facing down</li>
-                                    <li>Don't overfill - keep paper below the max line</li>
-                                    <li>Push the tray back in firmly</li>
-                                </ol>
-                            </div>
-                            
-                            Try printing again once paper is loaded properly.`;
-                        }
-                        break;
-                        
-                    case 3:
-                        if (msg.includes('yes')) {
-                            conversationState = { currentIssue: null, step: 0, userResponses: [] };
-                            return `There's an error that needs attention.
-                            
-                            <div class="mt-3 p-3 bg-orange-50 rounded-lg border-l-4 border-orange-400">
-                                <strong>Next steps:</strong>
-                                <ol class="list-decimal list-inside mt-2">
-                                    <li>Write down the exact error message or code</li>
-                                    <li>Contact library staff with this information</li>
-                                    <li>They can diagnose specific error codes</li>
-                                </ol>
-                            </div>
-                            
-                            Common errors include: toner issues, maintenance required, or hardware problems that need professional attention.`;
-                        } else if (msg.includes('no')) {
-                            conversationState.step = 4;
-                            return `No errors showing - that's good!
-                            
-                            <div class="mt-3 p-3 bg-blue-50 rounded-lg">
-                                <strong>Step 4:</strong> Let's test the connection. Try to print a test page:
-                                <ol class="list-decimal list-inside mt-2">
-                                    <li>On your computer, open any document</li>
-                                    <li>Press Ctrl+P (Windows) or Cmd+P (Mac)</li>
-                                    <li>Select the library printer from the list</li>
-                                    <li>Click Print</li>
-                                </ol>
-                            </div>
-                            
-                            Does anything happen? Any error messages on your computer?`;
-                        }
-                        break;
-                        
-                    case 4:
-                        conversationState = { currentIssue: null, step: 0, userResponses: [] };
-                        if (msg.includes('yes') || msg.includes('error') || msg.includes('problem')) {
-                            return `There seems to be a connection or software issue.
-                            
-                            <div class="mt-3 p-3 bg-yellow-50 rounded-lg">
-                                <strong>Try these solutions:</strong>
-                                <ol class="list-decimal list-inside mt-2">
-                                    <li>Check that you're connected to the library Wi-Fi</li>
-                                    <li>Try selecting a different printer from the list</li>
-                                    <li>Restart your computer and try again</li>
-                                    <li>Ask staff to help you reconnect to the printer</li>
-                                </ol>
-                            </div>`;
-                        } else {
-                            return `If you've gone through all these steps and it's still not working, it might be a hardware issue or network problem.
-                            
-                            <div class="mt-3 p-3 bg-green-50 rounded-lg border-l-4 border-green-400">
-                                <strong>✅ Recommended next step:</strong> Please ask a library staff member for assistance. Let them know:
-                                <ul class="list-disc list-inside mt-2">
-                                    <li>Printer appears to be on and ready</li>
-                                    <li>Paper is loaded correctly</li>
-                                    <li>No error messages showing</li>
-                                    <li>But printing still doesn't work</li>
-                                </ul>
-                            </div>`;
-                        }
-                        break;
-                }
+            // Basic responses for testing
+            if (msg.includes('hello') || msg.includes('hi')) {
+                return "Hello! I can help with printer issues. What's the problem?";
             }
             
-            return "I'm not sure what you mean. Can you try again or type 'start over' to begin troubleshooting from the beginning?";
+            if (msg.includes('paper jam')) {
+                return `<strong>Paper Jam Solution:</strong><br>
+                1. Turn off the printer<br>
+                2. Open all covers<br>
+                3. Gently remove jammed paper<br>
+                4. Close covers and turn back on<br><br>
+                If this doesn't work, ask library staff for help.`;
+            }
+            
+            if (msg.includes('not printing') || msg.includes('not working')) {
+                return `Let's troubleshoot step by step:<br><br>
+                <strong>Step 1:</strong> Is the printer turned on?<br>
+                Please respond with "yes" or "no".`;
+            }
+            
+            if (msg.includes('low toner') || msg.includes('faded')) {
+                return `<strong>Low Toner Issue:</strong><br>
+                Please notify library staff - they need to replace the toner cartridge.
+                Note any error messages on the printer display.`;
+            }
+            
+            if (msg.includes('wifi') || msg.includes('connect')) {
+                return `<strong>Wi-Fi Connection:</strong><br>
+                1. Connect to "Library_Guest" network<br>
+                2. Open your document and press Ctrl+P<br>
+                3. Select "Library_Printer_Main"<br>
+                4. You may need your library card number`;
+            }
+            
+            if (msg.includes('help') || msg.includes('what can you do')) {
+                return `I can help with:<br>
+                • Paper jams<br>
+                • Printer not working<br>
+                • Low toner issues<br>
+                • Wi-Fi connection<br>
+                • Print quality problems<br><br>
+                Just describe your issue!`;
+            }
+            
+            if (msg.includes('thank')) {
+                return "You're welcome! Anything else I can help with?";
+            }
+
+            // Default response
+            return "I'm not sure about that specific issue. Try asking about 'paper jam', 'not printing', 'low toner', or 'wifi connection'. You can also ask for 'help' to see what I can do.";
+        }
+
+        function handleUserInput() {
+            console.log("handleUserInput called");
+            
+            const message = userInput.value.trim();
+            console.log("User message:", message);
+            
+            if (message === '') {
+                console.log("Empty message, returning");
+                return;
+            }
+
+            // Add user message
+            addMessage('user', message);
+            userInput.value = '';
+
+            // Get and add bot response
+            setTimeout(() => {
+                const response = getResponse(message);
+                addMessage('bot', response);
+            }, 500);
+        }
+
+        // Add event listeners
+        console.log("Adding event listeners...");
+
+        sendBtn.addEventListener('click', function() {
+            console.log("Send button clicked");
+            handleUserInput();
+        });
+
+        userInput.addEventListener('keypress', function(e) {
+            console.log("Key pressed:", e.key);
+            if (e.key === 'Enter') {
+                handleUserInput();
+            }
+        });
+
+        clearChatBtn.addEventListener('click', function() {
+            console.log("Clear button clicked");
+            conversationState = { currentIssue: null, step: 0 };
+            chatMessages.innerHTML = `
+                <div class="flex justify-start">
+                    <div class="bg-gray-200 text-gray-800 p-3 rounded-lg max-w-lg shadow-sm">
+                        Hello! I'm your library printer troubleshooting assistant. 
+                        <br><br>
+                        Try typing: "hello", "paper jam", or "printer not working"
+                    </div>
+                </div>
+            `;
+            userInput.value = '';
+        });
+
+        // Focus input and test
+        userInput.focus();
+        console.log("Setup complete! Try typing a message.");
+
+        // Test message after 2 seconds
+        setTimeout(() => {
+            console.log("Adding test message...");
+            addMessage('bot', 'Debug: If you see this message, the JavaScript is working! Try typing something.');
+        }, 2000);
+    </script>
+</body>
+</html>
