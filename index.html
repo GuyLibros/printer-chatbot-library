@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Library Printer Troubleshooter</title>
+    <!-- Tailwind CSS CDN for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom scrollbar for chat messages to improve aesthetics */
+        .chat-messages::-webkit-scrollbar {
+            width: 8px;
+        }
+        .chat-messages::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+        .chat-messages::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 10px;
+        }
+        .chat-messages::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center font-sans">
+    <div class="flex flex-col bg-white shadow-lg rounded-xl w-full max-w-2xl h-[80vh] overflow-hidden">
+        <!-- Chat Header Section -->
+        <div class="bg-blue-600 text-white p-4 rounded-t-xl flex items-center justify-between shadow-md">
+            <h1 class="text-2xl font-bold">Library Printer Chatbot</h1>
+            <button id="clearChatBtn" class="bg-blue-700 hover:bg-blue-800 text-white px-4 py-2 rounded-lg shadow-sm transition duration-300 ease-in-out transform hover:scale-105">
+                Clear Chat
+            </button>
+        </div>
+
+        <!-- Chat Messages Display Area -->
+        <div id="chatMessages" class="flex-1 p-6 overflow-y-auto chat-messages space-y-4">
+            <!-- Initial bot message to guide the user -->
+            <div class="flex justify-start">
+                <div class="bg-gray-200 text-gray-800 p-3 rounded-lg max-w-xs shadow-sm">
+                    Hello! I'm your library printer troubleshooting assistant. How can I help you today?
+                    <br><br>
+                    You can ask me things like:
+                    <ul>
+                        <li>"Printer isn't printing"</li>
+                        <li>"Paper jam"</li>
+                        <li>"Low toner"</li>
+                        <li>"How to connect to Wi-Fi"</li>
+                        <li>"Start over"</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Chat Input Section -->
+        <div class="p-4 border-t border-gray-200 flex items-center space-x-3 bg-gray-50 rounded-b-xl">
+            <input type="text" id="userInput" placeholder="Type your message here..."
+                   class="flex-1 p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-200 ease-in-out">
+            <button id="sendBtn"
+                    class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105">
+                Send
+            </button>
+        </div>
+    </div>
+
+    <script type="module">
+        // Global variables for Firebase (these are typically provided by the Canvas environment
+        // for internal use and can be ignored for a simple GitHub Pages deployment unless
+        // you plan to integrate Firebase for persistence or authentication later).
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+        // Get references to the HTML elements
+        const chatMessages = document.getElementById('chatMessages');
+        const userInput = document.getElementById('userInput');
+        const sendBtn = document.getElementById('sendBtn');
+        const clearChatBtn = document.getElementById('clearChatBtn');
+
+        /**
+         * Adds a message to the chat display.
+         * @param {string} sender - 'user' or 'bot'
+         * @param {string} message - The message content (can contain HTML for formatting, including <img> tags)
+         */
+        function addMessage(sender, message) {
+            const messageDiv = document.createElement('div');
+            // Apply flexbox classes to position messages (user on right, bot on left)
+            messageDiv.classList.add('flex', sender === 'user' ? 'justify-end' : 'justify-start');
+
+            const messageBubble = document.createElement('div');
+            // Apply styling for message bubbles
+            messageBubble.classList.add(
+                'p-3',
+                'rounded-lg',
+                'max-w-xs', // Limit bubble width
+                'shadow-sm',
+                sender === 'user' ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-800'
+            );
+            messageBubble.innerHTML = message; // Use innerHTML to allow for line breaks, basic formatting, and <img> tags
+
+            messageDiv.appendChild(messageBubble);
+            chatMessages.appendChild(messageDiv);
+
+            // Automatically scroll to the bottom to show the latest message
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        /**
+         * Displays a loading indicator in the chat window.
+         */
+        function showLoadingIndicator() {
+            const loadingDiv = document.createElement('div');
+            loadingDiv.id = 'loadingIndicator'; // Assign an ID for easy removal
+            loadingDiv.classList.add('flex', 'justify-start');
+            loadingDiv.innerHTML = `
+                <div class="bg-gray-200 text-gray-800 p-3 rounded-lg max-w-xs shadow-sm">
+                    <div class="flex items-center space-x-2">
+                        <!-- Simple SVG spinner for visual feedback -->
+                        <svg class="animate-spin h-5 w-5 text-gray-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <span>Thinking...</span>
+                    </div>
+                </div>
+            `;
+            chatMessages.appendChild(loadingDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        /**
+         * Removes the loading indicator from the chat window.
+         */
+        function hideLoadingIndicator() {
+            const loadingIndicator = document.getElementById('loadingIndicator');
+            if (loadingIndicator) {
+                loadingIndicator.remove();
+            }
+        }
+
+        /**
+         * Provides rule-based responses for common printer issues.
+         * This function contains the core "knowledge base" for the chatbot's direct answers.
+         * Now includes image tags for screenshot responses, assuming images are in a 'screenshots' folder.
+         * @param {string} message - The user's input message.
+         * @returns {string|null} - The rule-based response or null if no match is found.
+         */
+        function getRuleBasedResponse(message) {
+            const lowerCaseMessage = message.toLowerCase();
+
+            if (lowerCaseMessage.includes("hello") || lowerCaseMessage.includes("hi")) {
+                return "Hello there! How can I assist you with the printer today?";
+            } else if (lowerCaseMessage.includes("printer not printing") || lowerCaseMessage.includes("isn't printing") || lowerCaseMessage.includes("not working")) {
+                return `
+                    Okay, let's troubleshoot. Please check the following:
+                    <ol class="list-decimal list-inside mt-2">
+                        <li>Is the printer turned on and connected to power?</li>
+                        <li>Is there enough paper in the tray?</li>
+                        <li>Are there any error messages on the printer's display?</li>
+                        <li>Is the printer connected to the library's Wi-Fi network?</li>
+                        <li>Try restarting the printer.</li>
+                    </ol>
+                    <p class="mt-4 text-sm text-gray-600">
+                        <strong class="text-blue-700">Tip:</strong> Check the printer's power button location, often on the front or side.
+                    </p>
+                    <img src="screenshots/printer_power_button.png" onerror="this.onerror=null; this.src='https://placehold.co/200x150/ADD8E6/000000?text=Printer+Power+Button';" alt="Printer Power Button" class="mt-2 rounded-md shadow-sm">
+                    <img src="screenshots/paper_tray_location.png" onerror="this.onerror=null; this.src='https://placehold.co/200x150/ADD8E6/000000?text=Paper+Tray+Location';" alt="Paper Tray Location" class="mt-2 rounded-md shadow-sm">
+                    Let me know what you find!
+                `;
+            } else if (lowerCaseMessage.includes("paper jam")) {
+                return `
+                    A paper jam can be frustrating! Here's how to clear it:
+                    <ol class="list-decimal list-inside mt-2">
+                        <li>Carefully open the printer covers as indicated in the printer's manual (usually the front or back).</li>
+                        <li>Gently pull out any visible jammed paper. Avoid tearing it.</li>
+                        <li>Check all paper trays and output areas for small pieces of torn paper.</li>
+                        <li>Close all covers securely.</li>
+                        <li>The printer should reset itself. If not, try turning it off and on again.</li>
+                    </ol>
+                    <p class="mt-4 text-sm text-gray-600">
+                        <strong class="text-blue-700">Visual Aid:</strong> Example of a common paper jam area.
+                    </p>
+                    <img src="screenshots/paper_jam_area.png" onerror="this.onerror=null; this.src='https://placehold.co/200x150/F08080/FFFFFF?text=Paper+Jam+Area';" alt="Paper Jam Area" class="mt-2 rounded-md shadow-sm">
+                    If the problem persists, please inform a library staff member.
+                `;
+            } else if (lowerCaseMessage.includes("low toner") || lowerCaseMessage.includes("ink low") || lowerCaseMessage.includes("replace cartridge")) {
+                return `
+                    If the toner or ink is low, the printer will eventually stop printing.
+                    <ol class="list-decimal list-inside mt-2">
+                        <li>Please check the printer's display for specific instructions on which cartridge needs replacement.</li>
+                        <li>Inform a library staff member, and they will assist you with replacing the toner or ink cartridge.</li>
+                    </ol>
+                    <p class="mt-4 text-sm text-gray-600">
+                        <strong class="text-blue-700">Reference:</strong> Look for indicators like this on the printer's screen.
+                    </p>
+                    <img src="screenshots/low_toner_indicator.png" onerror="this.onerror=null; this.src='https://placehold.co/200x150/FFD700/000000?text=Low+Toner+Indicator';" alt="Low Toner Indicator" class="mt-2 rounded-md shadow-sm">
+                    Please do not attempt to replace cartridges yourself as it requires specific knowledge and tools.
+                `;
+            } else if (lowerCaseMessage.includes("connect to wi-fi") || lowerCaseMessage.includes("network connection")) {
+                return `
+                    To connect to the library's Wi-Fi for printing:
+                    <ol class="list-decimal list-inside mt-2">
+                        <li>Ensure your device (laptop, phone) is connected to the 'Library_Guest' Wi-Fi network.</li>
+                        <li>Open the document you wish to print.</li>
+                        <li>Select the 'Print' option.</li>
+                        <li>Choose the library printer from the list of available printers (it should be named something like 'Library_Printer_Main').</li>
+                        <li>Follow any on-screen prompts for authentication (e.g., library card number or guest pass).</li>
+                    </ol>
+                    <p class="mt-4 text-sm text-gray-600">
+                        <strong class="text-blue-700">Screenshot:</strong> Example of selecting a printer from a print dialog.
+                    </p>
+                    <img src="screenshots/print_dialog_screenshot.png" onerror="this.onerror=null; this.src='https://placehold.co/200x150/90EE90/000000?text=Print+Dialog+Screenshot';" alt="Print Dialog Screenshot" class="mt-2 rounded-md shadow-sm">
+                    If you're having trouble connecting your device to Wi-Fi, please ask a staff member for assistance.
+                `;
+            } else if (lowerCaseMessage.includes("start over") || lowerCaseMessage.includes("reset")) {
+                return "Okay, let's start over. What's the main issue you're experiencing with the printer?";
+            } else if (lowerCaseMessage.includes("no power") || lowerCaseMessage.includes("power issue")) {
+                return `
+                    If the printer has no power:
+                    <ol class="list-decimal list-inside mt-2">
+                        <li>Check if the power cable is securely plugged into both the printer and the wall outlet.</li>
+                        <li>Try plugging the printer into a different outlet to rule out a faulty outlet.</li>
+                        <li>Ensure the power switch on the printer (if it has one) is in the 'On' position.</li>
+                    </ol>
+                    <p class="mt-4 text-sm text-gray-600">
+                        <strong class="text-blue-700">Image:</strong> How to check power connections.
+                    </p>
+                    <img src="screenshots/power_cable_check.png" onerror="this.onerror=null; this.src='https://placehold.co/200x150/DDA0DD/000000?text=Power+Cable+Check';" alt="Power Cable Check" class="mt-2 rounded-md shadow-sm">
+                    If it still doesn't power on, please notify a library staff member.
+                `;
+            } else if (lowerCaseMessage.includes("print quality") || lowerCaseMessage.includes("faded print") || lowerCaseMessage.includes("streaks")) {
+                return `
+                    Poor print quality can be due to several reasons:
+                    <ol class="list-decimal list-inside mt-2">
+                        <li><strong>Low Toner/Ink:</strong> Check the printer's display for toner/ink levels.</li>
+                        <li><strong>Dirty Printhead/Drum:</strong> The printer might need a cleaning cycle. Some printers have this option in their menu.</li>
+                        <li><strong>Wrong Paper Type:</strong> Ensure you are using the correct paper type for the printer.</li>
+                        <li><strong>Fuser Unit Issue:</strong> For laser printers, this could indicate a fuser problem.</li>
+                    </ol>
+                    <p class="mt-4 text-sm text-gray-600">
+                        <strong class="text-blue-700">Example:</strong> What faded print might look like.
+                    </p>
+                    <img src="screenshots/faded_print_example.png" onerror="this.onerror=null; this.src='https://placehold.co/200x150/FFB6C1/000000?text=Faded+Print+Example';" alt="Faded Print Example" class="mt-2 rounded-md shadow-sm">
+                    If basic checks don't resolve it, please inform a library staff member.
+                `;
+            } else if (lowerCaseMessage.includes("document stuck in queue") || lowerCaseMessage.includes("queue not clearing")) {
+                return `
+                    If your document is stuck in the print queue:
+                    <ol class="list-decimal list-inside mt-2">
+                        <li>On your computer, go to 'Devices and Printers' (Windows) or 'Printers & Scanners' (Mac).</li>
+                        <li>Find the library printer, right-click on it, and select 'See what's printing' or 'Open Print Queue'.</li>
+                        <li>Right-click on the stuck document and select 'Cancel' or 'Restart'.</li>
+                        <li>If it doesn't clear, try restarting your computer and the printer.</li>
+                    </ol>
+                    <p class="mt-4 text-sm text-gray-600">
+                        <strong class="text-blue-700">How-to:</strong> Accessing the print queue on Windows.
+                    </p>
+                    <img src="screenshots/windows_print_queue.png" onerror="this.onerror=null; this.src='https://placehold.co/200x150/87CEEB/000000?text=Windows+Print+Queue';" alt="Windows Print Queue" class="mt-2 rounded-md shadow-sm">
+                    If the issue persists, a library staff member can help clear the queue.
+                `;
+            }
+            return null; // Return null if no rule-based response matches the input
+        }
+
+        /**
+         * Makes a call to the Gemini API to get a more general response.
+         * @param {string} prompt - The prompt to send to the Gemini API.
+         * @returns {Promise<string>} - A promise that resolves with the Gemini API's text response.
+         */
+        async function getGeminiResponse(prompt) {
+            showLoadingIndicator(); // Show loading indicator before the API call
+            try {
+                let chatHistory = [];
+                chatHistory.push({ role: "user", parts: [{ text: prompt }] });
+                const payload = { contents: chatHistory };
+                // The apiKey is left empty; the Canvas environment will provide it at runtime.
+                const apiKey = "";
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                // Check if the API request was successful
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    console.error('API Error:', errorData);
+                    throw new Error(`API request failed with status ${response.status}: ${errorData.error.message || 'Unknown error'}`);
+                }
+
+                const result = await response.json();
+                // Extract the text from the API response
+                if (result.candidates && result.candidates.length > 0 &&
+                    result.candidates[0].content && result.candidates[0].content.parts &&
+                    result.candidates[0].content.parts.length > 0) {
+                    return result.candidates[0].content.parts[0].text;
+                } else {
+                    console.warn('Gemini API response structure unexpected:', result);
+                    return "I'm sorry, I couldn't generate a specific response for that. Could you please rephrase?";
+                }
+            } catch (error) {
+                console.error('Error calling Gemini API:', error);
+                return "I'm having trouble connecting to my knowledge base right now. Please try again later or ask a staff member.";
+            } finally {
+                hideLoadingIndicator(); // Hide loading indicator after the API call completes
+            }
+        }
+
+        /**
+         * Main function to handle user input.
+         * It first checks for a rule-based response, then falls back to the Gemini API.
+         */
+        async function handleUserInput() {
+            const userMessage = userInput.value.trim();
+            if (userMessage === '') return; // Do nothing if the input is empty
+
+            addMessage('user', userMessage); // Display user's message
+            userInput.value = ''; // Clear the input field
+
+            let botResponse = getRuleBasedResponse(userMessage); // Try to get a rule-based response
+
+            if (botResponse) {
+                addMessage('bot', botResponse); // Display rule-based response
+            } else {
+                // If no rule-based response, construct a prompt for Gemini and get an AI-generated reply
+                const geminiPrompt = `You are a helpful library printer troubleshooting assistant. A user has asked: "${userMessage}". Provide a concise and helpful response for troubleshooting a library printer. If you don't know, suggest asking a library staff member.`;
+                const geminiReply = await getGeminiResponse(geminiPrompt);
+                addMessage('bot', geminiReply); // Display Gemini's response
+            }
+        }
+
+        // Event Listeners for user interaction
+        sendBtn.addEventListener('click', handleUserInput); // Send message on button click
+        userInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') { // Send message on Enter key press
+                handleUserInput();
+            }
+        });
+
+        // Event listener for the "Clear Chat" button
+        clearChatBtn.addEventListener('click', () => {
+            // Reset the chat messages area to the initial bot message
+            chatMessages.innerHTML = `
+                <div class="flex justify-start">
+                    <div class="bg-gray-200 text-gray-800 p-3 rounded-lg max-w-xs shadow-sm">
+                        Hello! I'm your library printer troubleshooting assistant. How can I help you today?
+                        <br><br>
+                        You can ask me things like:
+                        <ul>
+                            <li>"Printer isn't printing"</li>
+                            <li>"Paper jam"</li>
+                            <li>"Low toner"</li>
+                            <li>"How to connect to Wi-Fi"</li>
+                            <li>"Start over"</li>
+                        </ul>
+                    </div>
+                </div>
+            `;
+            userInput.value = ''; // Clear the input field
+        });
+    </script>
+</body>
+</html>
